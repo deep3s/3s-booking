@@ -1,78 +1,41 @@
-import { Star, Award, Check, Calendar, Clock, Sparkles } from 'lucide-react';
+import { Calendar, Clock, Sparkles, Star, Check } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+import { Calendar as CalendarComponent } from './ui/calendar';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const specialists = [
-  {
-    id: 1,
-    name: "Sofia Martinez",
-    title: "Master Stylist",
-    rating: 5.0,
-    reviews: 342,
-    experience: "12 years",
-    image: "https://images.unsplash.com/photo-1624981015149-e01395f1d774?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoYWlyZHJlc3NlcnxlbnwxfHx8fDE3NjAxNjU0MDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    specialties: ["Color Expert", "Balayage", "Styling"],
-    nextAvailable: "Today 2:00 PM",
-    topRated: true
-  },
-  {
-    id: 2,
-    name: "Emma Thompson",
-    title: "Senior Stylist",
-    rating: 4.9,
-    reviews: 278,
-    experience: "8 years",
-    image: "https://images.unsplash.com/photo-1759134198561-e2041049419c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoYWlyJTIwc3R5bGlzdCUyMHdvcmtpbmd8ZW58MXx8fHwxNzYwMTY1NDA2fDA&ixlib=rb-4.1.0&q=80&w=1080",
-    specialties: ["Haircut", "Extensions", "Bridal"],
-    nextAvailable: "Today 4:30 PM",
-    topRated: false
-  },
-  {
-    id: 3,
-    name: "Isabella Chen",
-    title: "Beauty Specialist",
-    rating: 4.8,
-    reviews: 195,
-    experience: "6 years",
-    image: "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWF1dHklMjBzYWxvbnxlbnwxfHx8fDE3NjAwNTgxNDF8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    specialties: ["Facial", "Skincare", "Spa"],
-    nextAvailable: "Tomorrow 10:00 AM",
-    topRated: true
-  },
-  {
-    id: 4,
-    name: "Olivia Rodriguez",
-    title: "Nail Artist",
-    rating: 4.9,
-    reviews: 221,
-    experience: "5 years",
-    image: "https://images.unsplash.com/photo-1681965823525-b684fb97e9fe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBzYWxvbiUyMGludGVyaW9yfGVufDF8fHx8MTc2MDA4ODkwOXww&ixlib=rb-4.1.0&q=80&w=1080",
-    specialties: ["Manicure", "Pedicure", "Nail Art"],
-    nextAvailable: "Today 3:00 PM",
-    topRated: false
-  }
+const timeSlots = [
+  "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
+  "12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM",
+  "3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM",
+  "6:00 PM", "6:30 PM", "7:00 PM", "7:30 PM"
 ];
 
-export function SpecialistSection() {
+export function DateTimeSection() {
   const navigate = useNavigate();
-  const [selectedSpecialist, setSelectedSpecialist] = useState<number | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedServices, setSelectedServices] = useState<any[]>([]);
   const [salonDetails, setSalonDetails] = useState<any>(null);
+  const [selectedSpecialist, setSelectedSpecialist] = useState<any>(null);
 
-  // Load selected services and salon details from localStorage
+  // Load data from localStorage
   useEffect(() => {
     const storedServices = localStorage.getItem('selectedServices');
     const storedSalon = localStorage.getItem('selectedSalon');
+    const storedSpecialist = localStorage.getItem('selectedSpecialist');
     
     if (storedServices) {
       setSelectedServices(JSON.parse(storedServices));
     }
     if (storedSalon) {
       setSalonDetails(JSON.parse(storedSalon));
+    }
+    if (storedSpecialist) {
+      const data = JSON.parse(storedSpecialist);
+      setSelectedSpecialist(data.specialist);
     }
   }, []);
 
@@ -83,14 +46,24 @@ export function SpecialistSection() {
   }, 0);
 
   const handleContinue = () => {
-    // Save specialist to localStorage
-    if (selectedSpecialist) {
-      const specialist = specialists.find(s => s.id === selectedSpecialist);
-      localStorage.setItem('selectedSpecialist', JSON.stringify({
-        specialist
+    if (selectedDate && selectedTime) {
+      // Save date and time to localStorage
+      localStorage.setItem('selectedDateTime', JSON.stringify({
+        date: selectedDate.toISOString(),
+        time: selectedTime
       }));
-      navigate('/datetime');
+      navigate('/payment');
     }
+  };
+
+  const formatDate = (date: Date | undefined) => {
+    if (!date) return '';
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
   return (
@@ -99,99 +72,93 @@ export function SpecialistSection() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#d4af37]/20 to-[#f0d976]/20 border border-[#d4af37]/30 mb-4">
-            <Award className="h-4 w-4 text-[#d4af37]" />
-            <span className="text-[#d4af37]">Step 3: Choose Your Specialist</span>
+            <Calendar className="h-4 w-4 text-[#d4af37]" />
+            <span className="text-[#d4af37]">Step 4: Select Date & Time</span>
           </div>
           <h2 className="mb-3 bg-gradient-to-r dark:from-white dark:via-[#f0d976] dark:to-white cream:from-foreground cream:via-[#d4af37] cream:to-foreground bg-clip-text text-transparent">
-            Select a Specialist
+            Choose Your Appointment
           </h2>
           <p className="dark:text-white/60 cream:text-foreground/60">
-            Book with our experienced and highly-rated professionals
+            Select your preferred date and time slot
           </p>
         </div>
 
         {/* Two Column Layout */}
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Specialists List - Left Side (2 columns) */}
+          {/* Date & Time Selection - Left Side (2 columns) */}
           <div className="lg:col-span-2 space-y-6">
-            {specialists.map((specialist) => {
-              const isSelected = selectedSpecialist === specialist.id;
-              
-              return (
-                <Card
-                  key={specialist.id}
-                  className={`overflow-hidden cursor-pointer transition-all duration-300 ${
-                    isSelected 
-                      ? 'bg-gradient-to-br from-[#d4af37]/20 to-[#f0d976]/20 border-[#d4af37] shadow-[0_0_30px_rgba(212,175,55,0.3)]' 
-                      : 'border-[#d4af37]/20 hover:border-[#d4af37]/50 dark:bg-gradient-to-br dark:from-zinc-900/90 dark:to-black/90 cream:bg-gradient-to-br cream:from-white cream:to-[#f5f1e8]'
-                  }`}
-                  onClick={() => setSelectedSpecialist(specialist.id)}
-                >
-                  <CardContent className="p-0">
-                    <div className="flex flex-col sm:flex-row">
-                      <div className="relative w-full sm:w-40 h-48 sm:h-auto">
-                        <ImageWithFallback
-                          src={specialist.image}
-                          alt={specialist.name}
-                          className="w-full h-full object-cover"
-                        />
-                        {specialist.topRated && (
-                          <div className="absolute top-2 left-2">
-                            <Badge className="bg-gradient-to-r from-[#d4af37] to-[#f0d976] border-0 dark:text-black cream:text-white">
-                              <Award className="h-3 w-3 mr-1" />
-                              Top Rated
-                            </Badge>
-                          </div>
-                        )}
-                        {isSelected && (
-                          <div className="absolute top-2 right-2">
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#d4af37] to-[#f0d976] flex items-center justify-center">
-                              <Check className="h-4 w-4 dark:text-black cream:text-white" />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex-1 p-4">
-                        <div className="mb-3">
-                          <h3 className={`mb-1 ${isSelected ? 'text-[#d4af37]' : 'dark:text-white cream:text-foreground'}`}>
-                            {specialist.name}
-                          </h3>
-                          <p className="dark:text-white/60 cream:text-foreground/60">{specialist.title}</p>
-                        </div>
-                        
-                        <div className="flex items-center gap-4 mb-3">
-                          <div className="flex items-center gap-1">
-                            <Star className="h-4 w-4 text-[#d4af37] fill-current" />
-                            <span className="text-[#d4af37]">{specialist.rating}</span>
-                            <span className="dark:text-white/40 cream:text-foreground/40 text-sm">({specialist.reviews})</span>
-                          </div>
-                          <div className="dark:text-white/60 cream:text-foreground/60 text-sm">
-                            {specialist.experience} exp.
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {specialist.specialties.map((specialty) => (
-                            <span 
-                              key={specialty} 
-                              className="px-2 py-1 rounded-full bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30 text-[#d4af37] text-xs"
-                            >
-                              {specialty}
-                            </span>
-                          ))}
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-green-500" />
-                          <span className="text-green-500">Next: {specialist.nextAvailable}</span>
-                        </div>
-                      </div>
+            {/* Calendar */}
+            <Card className="border-[#d4af37]/30 dark:bg-gradient-to-br dark:from-zinc-900/90 dark:to-black/90 cream:bg-gradient-to-br cream:from-white cream:to-[#f5f1e8]">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-2 mb-6">
+                  <Calendar className="h-5 w-5 text-[#d4af37]" />
+                  <h3 className="dark:text-white cream:text-foreground">Select Date</h3>
+                </div>
+                
+                <div className="flex justify-center">
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                    className="rounded-xl border border-[#d4af37]/20 dark:bg-black/50 cream:bg-white p-4"
+                  />
+                </div>
+
+                {selectedDate && (
+                  <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30">
+                    <p className="dark:text-white/60 cream:text-foreground/60 text-sm mb-1">
+                      Selected Date
+                    </p>
+                    <p className="text-[#d4af37]">
+                      {formatDate(selectedDate)}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Time Slots */}
+            {selectedDate && (
+              <Card className="border-[#d4af37]/30 dark:bg-gradient-to-br dark:from-zinc-900/90 dark:to-black/90 cream:bg-gradient-to-br cream:from-white cream:to-[#f5f1e8]">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2 mb-6">
+                    <Clock className="h-5 w-5 text-[#d4af37]" />
+                    <h3 className="dark:text-white cream:text-foreground">Select Time Slot</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                    {timeSlots.map((time) => {
+                      const isSelected = selectedTime === time;
+                      return (
+                        <button
+                          key={time}
+                          onClick={() => setSelectedTime(time)}
+                          className={`px-3 py-3 rounded-lg border transition-all text-sm ${
+                            isSelected
+                              ? 'bg-gradient-to-r from-[#d4af37] to-[#f0d976] dark:text-black cream:text-white border-transparent shadow-[0_0_20px_rgba(212,175,55,0.3)]'
+                              : 'border-[#d4af37]/30 hover:border-[#d4af37]/50 dark:bg-black/50 dark:text-white cream:bg-white cream:text-foreground'
+                          }`}
+                        >
+                          {time}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {selectedTime && (
+                    <div className="mt-6 p-4 rounded-lg bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30">
+                      <p className="dark:text-white/60 cream:text-foreground/60 text-sm mb-1">
+                        Selected Time
+                      </p>
+                      <p className="text-[#d4af37]">
+                        {selectedTime}
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Cart - Right Side (1 column, sticky) */}
@@ -235,7 +202,7 @@ export function SpecialistSection() {
                           <Sparkles className="h-4 w-4 text-[#d4af37]" />
                           Selected Services
                         </h4>
-                        <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
                           {selectedServices.map((service) => (
                             <div
                               key={service.id}
@@ -257,15 +224,46 @@ export function SpecialistSection() {
                         </div>
                       </div>
 
-                      {/* Specialist Selection */}
+                      {/* Specialist */}
                       {selectedSpecialist && (
                         <div className="mb-4 p-3 rounded-lg border border-[#d4af37]/20 dark:bg-black/30 cream:bg-[#faf8f3]/50">
                           <h5 className="dark:text-white cream:text-foreground text-sm mb-2">
-                            Selected Specialist
+                            Specialist
                           </h5>
-                          <p className="text-[#d4af37] text-sm">
-                            {specialists.find(s => s.id === selectedSpecialist)?.name}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <ImageWithFallback
+                              src={selectedSpecialist.image}
+                              alt={selectedSpecialist.name}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                            <div>
+                              <p className="text-[#d4af37] text-sm">
+                                {selectedSpecialist.name}
+                              </p>
+                              <p className="dark:text-white/60 cream:text-foreground/60 text-xs">
+                                {selectedSpecialist.title}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Date & Time */}
+                      {(selectedDate || selectedTime) && (
+                        <div className="mb-4 p-3 rounded-lg border border-[#d4af37]/20 dark:bg-black/30 cream:bg-[#faf8f3]/50">
+                          <h5 className="dark:text-white cream:text-foreground text-sm mb-2">
+                            Appointment Details
+                          </h5>
+                          {selectedDate && (
+                            <p className="dark:text-white/60 cream:text-foreground/60 text-xs mb-1">
+                              <span className="text-[#d4af37]">Date:</span> {formatDate(selectedDate)}
+                            </p>
+                          )}
+                          {selectedTime && (
+                            <p className="dark:text-white/60 cream:text-foreground/60 text-xs">
+                              <span className="text-[#d4af37]">Time:</span> {selectedTime}
+                            </p>
+                          )}
                         </div>
                       )}
 
@@ -298,18 +296,18 @@ export function SpecialistSection() {
                       </div>
 
                       {/* Continue Button */}
-                      {selectedSpecialist ? (
+                      {selectedDate && selectedTime ? (
                         <Button
                           onClick={handleContinue}
                           className="w-full bg-gradient-to-r from-[#d4af37] to-[#f0d976] dark:text-black cream:text-white hover:from-[#b8941f] hover:to-[#d4af37] h-12"
                         >
-                          <Calendar className="h-5 w-5 mr-2" />
-                          Select Date & Time
+                          <Check className="h-5 w-5 mr-2" />
+                          Continue to Payment
                         </Button>
                       ) : (
                         <div className="text-center py-4">
                           <p className="dark:text-white/60 cream:text-foreground/60 text-sm">
-                            Select a specialist to continue
+                            {!selectedDate ? 'Select a date' : 'Select a time slot'}
                           </p>
                         </div>
                       )}

@@ -20,7 +20,7 @@ export function Header() {
           </Link>
         </div>
 
-        {/*<nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-6">
           <Link to="/salons" className="dark:text-white/80 cream:text-foreground/80 hover:text-[#d4af37] transition-colors">
             Find Salons
           </Link>
@@ -30,7 +30,7 @@ export function Header() {
           <a href="#" className="dark:text-white/80 cream:text-foreground/80 hover:text-[#d4af37] transition-colors">
             About
           </a>
-        </nav>*/}
+        </nav>
 
         <div className="flex items-center gap-3">
           <Button

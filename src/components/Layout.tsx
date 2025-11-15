@@ -10,8 +10,8 @@ export function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      {/*<ProgressIndicator />*/}
-
+      <ProgressIndicator />
+      
       <main>{children}</main>
 
       {/* Footer */}
@@ -31,7 +31,7 @@ export function Layout({ children }: LayoutProps) {
                 Your premium salon booking platform
               </p>
             </div>
-
+            
             <div>
               <h4 className="dark:text-white cream:text-foreground mb-3">Company</h4>
               <ul className="space-y-2 text-sm dark:text-white/60 cream:text-foreground/60">
@@ -40,7 +40,7 @@ export function Layout({ children }: LayoutProps) {
                 <li><a href="#" className="hover:text-[#d4af37] transition-colors">Press</a></li>
               </ul>
             </div>
-
+            
             <div>
               <h4 className="dark:text-white cream:text-foreground mb-3">Support</h4>
               <ul className="space-y-2 text-sm dark:text-white/60 cream:text-foreground/60">
@@ -49,7 +49,7 @@ export function Layout({ children }: LayoutProps) {
                 <li><a href="#" className="hover:text-[#d4af37] transition-colors">FAQs</a></li>
               </ul>
             </div>
-
+            
             <div>
               <h4 className="dark:text-white cream:text-foreground mb-3">Legal</h4>
               <ul className="space-y-2 text-sm dark:text-white/60 cream:text-foreground/60">
@@ -59,7 +59,7 @@ export function Layout({ children }: LayoutProps) {
               </ul>
             </div>
           </div>
-
+          
           <div className="pt-8 border-t border-[#d4af37]/20 text-center dark:text-white/40 cream:text-foreground/40 text-sm">
             <p>© 2025 LuxeSalon. All rights reserved.</p>
           </div>
