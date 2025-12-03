@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Search, MapPin, Calendar, Sparkles, Smartphone, Apple, PlayCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import {Search, MapPin, Calendar, Sparkles, Smartphone, Apple, PlayCircle, Clock} from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -9,7 +9,16 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { format } from 'date-fns';
 import { Autocomplete } from './ui/Autocomplete';
 import {Slider} from "./ui/slider";
+import { useLazyReverseGeocodeQuery } from '../services/olaMaps.api';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from './ui/select';
 
+const timeOptions = Array.from({ length: 48 }, (_, i) => {
+	const hour = Math.floor(i / 2);
+	const minute = i % 2 === 0 ? '00' : '30';
+	const period = hour < 12 ? 'AM' : 'PM';
+	const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+	return `${displayHour}:${minute} ${period}`;
+});
 const mockSalons = [
 	{
 		id: 1,
@@ -62,12 +71,54 @@ const mockSalons = [
 ];
 
 export function SearchSection() {
-	const [date, setDate] = useState<Date>();
-	// const [showTimeDropdown, setShowTimeDropdown] = useState(false);
-	// const [fromTime, setFromTime] = useState('9:00 AM');
-	// const [toTime, setToTime] = useState('6:00 PM');
+     const [date, setDate] = useState<Date>();
+	const [showTimeDropdown, setShowTimeDropdown] = useState(false);
+	const [fromTime, setFromTime] = useState('9:00 AM');
+	const [toTime, setToTime] = useState('6:00 PM');
 	const [distance, setDistance] = useState([5]);
 	const [location, setLocation] = useState('');
+	// Controlled state for the "Service or Salon" input
+	const [serviceQuery, setServiceQuery] = useState('');
+	const serviceRef = useRef<HTMLInputElement | null>(null);
+
+	const setServiceAndFocus = (val: string) => {
+		setServiceQuery(val);
+		// focus the input after state update
+		setTimeout(() => serviceRef.current?.focus(), 0);
+	};
+
+	// lazy reverse geocode hook - we'll trigger on mount when localStorage has userLocation
+	const [triggerReverseGeocode, reverseResult] = useLazyReverseGeocodeQuery();
+	const didRunRef = useRef(false);
+
+	useEffect(() => {
+		// run only once
+		if (didRunRef.current) return;
+		didRunRef.current = true;
+
+		try {
+			const raw = localStorage.getItem('userLocation');
+			if (!raw) return;
+			const parsed = JSON.parse(raw);
+			// expected shape: { latitude, longitude, timestamp, source }
+			const lat = parsed?.latitude ?? parsed?.lat ?? parsed?.coords?.latitude;
+			const lng = parsed?.longitude ?? parsed?.lng ?? parsed?.coords?.longitude;
+			if (lat != null && lng != null) {
+				// trigger reverse geocode with "lat,lng" string
+				triggerReverseGeocode(`${lat},${lng}`);
+			}
+		} catch (e) {
+			// ignore parse errors
+		}
+	}, [triggerReverseGeocode]);
+
+	// when reverse geocode returns, set location from the address field (if present)
+	useEffect(() => {
+		const data = (reverseResult as any)?.data;
+		if (data && data.address) {
+			setLocation(data.address);
+		}
+	}, [reverseResult]);
 
 	const handleQuickDate = (type: 'today' | 'tomorrow') => {
 		const newDate = new Date();
@@ -77,23 +128,23 @@ export function SearchSection() {
 		setDate(newDate);
 	};
 
-	// const handleTimePreset = (preset: 'morning' | 'afternoon' | 'evening') => {
-	// 	switch (preset) {
-	// 		case 'morning':
-	// 			setFromTime('6:00 AM');
-	// 			setToTime('12:00 PM');
-	// 			break;
-	// 		case 'afternoon':
-	// 			setFromTime('12:00 PM');
-	// 			setToTime('5:00 PM');
-	// 			break;
-	// 		case 'evening':
-	// 			setFromTime('5:00 PM');
-	// 			setToTime('10:00 PM');
-	// 			break;
-	// 	}
-	// 	setShowTimeDropdown(false);
-	// };
+	const handleTimePreset = (preset: 'morning' | 'afternoon' | 'evening') => {
+		switch (preset) {
+			case 'morning':
+				setFromTime('6:00 AM');
+				setToTime('12:00 PM');
+				break;
+			case 'afternoon':
+				setFromTime('12:00 PM');
+				setToTime('5:00 PM');
+				break;
+			case 'evening':
+				setFromTime('5:00 PM');
+				setToTime('10:00 PM');
+				break;
+		}
+		setShowTimeDropdown(false);
+	};
 
 	return (
 		<>
@@ -134,6 +185,9 @@ export function SearchSection() {
 								<div className="relative">
 									<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#d4af37]" />
 									<Input
+										ref={(serviceRef as any)}
+										value={serviceQuery}
+										onChange={(e) => setServiceQuery((e as any).target.value)}
 										placeholder="Service or Salon"
 										className="pl-10 border-[#d4af37]/30 focus:border-[#d4af37] dark:bg-black/50 dark:text-white dark:placeholder:text-white/40 cream:bg-white cream:text-foreground cream:placeholder:text-foreground/40"
 									/>
@@ -141,16 +195,19 @@ export function SearchSection() {
 
 								<Popover>
 									<PopoverTrigger asChild>
-										<Button
-											variant="outline"
-											className="justify-start text-left border-[#d4af37]/30 hover:border-[#d4af37] dark:bg-black/50 dark:text-white dark:hover:bg-black/70 dark:hover:text-white cream:bg-white cream:text-foreground cream:hover:bg-[#f5f1e8]"
-										>
-											<Calendar className="mr-2 h-5 w-5 text-[#d4af37]" />
-											{date ? format(date, 'PPP') : <span className="dark:text-white/40 cream:text-foreground/40">Pick a date</span>}
-										</Button>
+										<div className="relative w-full">
+											<Button
+												variant="outline"
+												className="justify-start text-left w-full border-[#d4af37]/30 hover:border-[#d4af37] dark:bg-black/50 dark:text-white dark:hover:bg-black/70 dark:hover:text-white cream:bg-white cream:text-foreground cream:hover:bg-[#f5f1e8]"
+											>
+												<Calendar className="mr-2 h-5 w-5 text-[#d4af37]"/>
+												{date ? format(date, 'PPP') :
+													<span className="dark:text-white/40 cream:text-foreground/40">Pick a date</span>}
+											</Button>
+										</div>
 									</PopoverTrigger>
 									<PopoverContent className="w-auto p-0 border-[#d4af37]/30 dark:bg-zinc-900 cream:bg-white" align="start">
-										<div className="flex gap-2 p-3 border-b border-[#d4af37]/20">
+										<div className="flex gap-2 p-3 border-b border-[#d4af37]/20 ">
 											<Button
 												size="sm"
 												onClick={() => handleQuickDate('today')}
@@ -178,17 +235,19 @@ export function SearchSection() {
 							</div>
 
 							<div className="grid md:grid-cols-2 gap-4 mb-4">
-								{/*<Popover open={showTimeDropdown} onOpenChange={setShowTimeDropdown}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="justify-start text-left border-[#d4af37]/30 hover:border-[#d4af37] dark:bg-black/50 dark:text-white dark:hover:bg-black/70 dark:hover:text-white cream:bg-white cream:text-foreground cream:hover:bg-[#f5f1e8]"
-                    >
-                      <Clock className="mr-2 h-5 w-5 text-[#d4af37]" />
-                      <span>{fromTime} - {toTime}</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 border-[#d4af37]/30 dark:bg-zinc-900 cream:bg-white" align="start">
+								<Popover open={showTimeDropdown} onOpenChange={setShowTimeDropdown}>
+									<PopoverTrigger asChild>
+										<div className="relative w-full">
+											<Button
+												variant="outline"
+												className="justify-start w-full text-left border-[#d4af37]/30 hover:border-[#d4af37] dark:bg-black/50 dark:text-white dark:hover:bg-black/70 dark:hover:text-white cream:bg-white cream:text-foreground cream:hover:bg-[#f5f1e8]"
+											>
+												<Clock className="mr-2 h-5 w-5 text-[#d4af37]"/>
+												<span>{fromTime} - {toTime}</span>
+											</Button>
+										</div>
+									</PopoverTrigger>
+									<PopoverContent className="w-80 border-[#d4af37]/30 dark:bg-zinc-900 cream:bg-white" align="start">
                     <div className="space-y-4">
                       <div className="flex gap-2 mb-3">
                         <Button
@@ -247,7 +306,7 @@ export function SearchSection() {
                       </div>
                     </div>
                   </PopoverContent>
-                </Popover>*/}
+                </Popover>
 
 								<div className="space-y-2">
 									<div className="flex items-center justify-between text-sm">
@@ -267,16 +326,16 @@ export function SearchSection() {
 
 							<div className="mt-4 flex flex-wrap gap-3">
 								<span className="dark:text-white/60 cream:text-foreground/60">Popular:</span>
-								<button className="px-4 py-1 rounded-full bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30 text-[#d4af37] hover:from-[#d4af37]/20 hover:to-[#f0d976]/20 transition-all">
+								<button onClick={() => setServiceAndFocus('Haircut')} className="px-4 py-1 rounded-full bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30 text-[#d4af37] hover:from-[#d4af37]/20 hover:to-[#f0d976]/20 transition-all">
 									Haircut
 								</button>
-								<button className="px-4 py-1 rounded-full bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30 text-[#d4af37] hover:from-[#d4af37]/20 hover:to-[#f0d976]/20 transition-all">
+								<button onClick={() => setServiceAndFocus('Manicure')} className="px-4 py-1 rounded-full bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30 text-[#d4af37] hover:from-[#d4af37]/20 hover:to-[#f0d976]/20 transition-all">
 									Manicure
 								</button>
-								<button className="px-4 py-1 rounded-full bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30 text-[#d4af37] hover:from-[#d4af37]/20 hover:to-[#f0d976]/20 transition-all">
+								<button onClick={() => setServiceAndFocus('Facial')} className="px-4 py-1 rounded-full bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30 text-[#d4af37] hover:from-[#d4af37]/20 hover:to-[#f0d976]/20 transition-all">
 									Facial
 								</button>
-								<button className="px-4 py-1 rounded-full bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30 text-[#d4af37] hover:from-[#d4af37]/20 hover:to-[#f0d976]/20 transition-all">
+								<button onClick={() => setServiceAndFocus('Spa')} className="px-4 py-1 rounded-full bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30 text-[#d4af37] hover:from-[#d4af37]/20 hover:to-[#f0d976]/20 transition-all">
 									Spa
 								</button>
 							</div>

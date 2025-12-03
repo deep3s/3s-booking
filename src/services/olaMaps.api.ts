@@ -53,7 +53,7 @@ export const olaMapsApi = createApi({
     }),
 
     getPlaceDetails: builder.query<PlaceDetails, string>({
-      async queryFn(placeId, _queryApi, _extraOptions, fetchWithBQ) {
+      async queryFn(placeId = "", _queryApi, _extraOptions, fetchWithBQ) {
         const id = placeId?.trim();
         if (!id) return { data: {} as PlaceDetails };
 
@@ -70,6 +70,49 @@ export const olaMapsApi = createApi({
           lat: result?.geometry?.location?.lat,
           lng: result?.geometry?.location?.lng,
           // you can add more simplified address components if needed
+        };
+
+        return { data: details };
+      },
+    }),
+
+    // Reverse geocode: accepts a lat,lng string (e.g. "12.34,56.78") or same format
+    reverseGeocode: builder.query<PlaceDetails, string>({
+      async queryFn(latlng = "", _queryApi, _extraOptions, fetchWithBQ) {
+        const arg = latlng?.trim();
+        if (!arg) return { data: {} as PlaceDetails };
+
+        const params = new URLSearchParams({ latlng: arg, api_key: API_KEY });
+        const url = `/places/v1/reverse-geocode?${params.toString()}`;
+
+        const res = await fetchWithBQ(url);
+        if (res.error) return { error: res.error as any };
+
+        // API shape may vary; try to read results[] first (per provided example)
+        const payload = res.data as any;
+        // Prefer payload.results[0] if present (matches the example you provided)
+        const result = Array.isArray(payload?.results) && payload.results.length ? payload.results[0] : (payload?.result || (Array.isArray(payload) && payload[0]) || {});
+
+        // Extract lat/lng from geometry.location when available, otherwise parse the latlng param
+        let lat: number | undefined;
+        let lng: number | undefined;
+        if (result?.geometry?.location) {
+          lat = Number(result.geometry.location.lat ?? result.geometry.location.latitude ?? undefined);
+          lng = Number(result.geometry.location.lng ?? result.geometry.location.longitude ?? undefined);
+        }
+        if ((lat == null || lng == null) && arg) {
+          const parts = arg.split(',').map((s: string) => parseFloat(s.trim()));
+          if (parts.length === 2 && !Number.isNaN(parts[0]) && !Number.isNaN(parts[1])) {
+            lat = parts[0];
+            lng = parts[1];
+          }
+        }
+
+        const details: PlaceDetails = {
+          address: result?.formatted_address || result?.name || result?.address || undefined,
+          placeId: result?.place_id || result?.place_id || undefined,
+          lat,
+          lng,
         };
 
         return { data: details };
@@ -101,6 +144,8 @@ export const {
   useLazyGetSuggestionsQuery,
   useGetPlaceDetailsQuery,
   useLazyGetPlaceDetailsQuery,
+  useReverseGeocodeQuery,
+  useLazyReverseGeocodeQuery,
   useGetGeocodeQuery,
   useLazyGetGeocodeQuery,
 } = olaMapsApi;
