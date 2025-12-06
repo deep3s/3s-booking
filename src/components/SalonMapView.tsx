@@ -1,17 +1,12 @@
-import { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Star, Clock, Navigation, Search, Calendar, ChevronDown } from 'lucide-react';
+import { MapPin, Star, Clock, Navigation, ChevronDown } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Input } from './ui/input';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Calendar as CalendarComponent } from './ui/calendar';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Slider } from './ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
-import { format } from 'date-fns';
+import { SearchControls } from './SearchControls';
 
 const timeOptions = Array.from({ length: 48 }, (_, i) => {
   const hour = Math.floor(i / 2);
@@ -104,6 +99,9 @@ export function SalonMapView() {
   const [fromTime, setFromTime] = useState('9:00 AM');
   const [toTime, setToTime] = useState('6:00 PM');
   const [distance, setDistance] = useState([5]);
+  const [location, setLocation] = useState('');
+  const [serviceQuery, setServiceQuery] = useState('');
+  const serviceRef = useRef<HTMLInputElement | null>(null);
 
   const handleQuickDate = (type: 'today' | 'tomorrow') => {
     const newDate = new Date();
@@ -145,15 +143,15 @@ export function SalonMapView() {
           {/* Salon List - 30% */}
           <div className="w-full lg:w-[30%] space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto pr-2 custom-scrollbar">
             {salons.map((salon) => (
-              <Card 
-                key={salon.id} 
+              <Card
+                key={salon.id}
                 className="border-[#d4af37]/20 hover:border-[#d4af37]/50 transition-all cursor-pointer overflow-hidden group dark:bg-gradient-to-br dark:from-zinc-900/90 dark:to-black/90 cream:bg-gradient-to-br cream:from-white cream:to-[#f5f1e8]"
                 onClick={() => setSelectedSalon(salon.id)}
               >
                 <CardContent className="p-0">
                   <div className="relative w-full h-40 overflow-hidden">
-                    <ImageWithFallback 
-                      src={salon.image} 
+                    <ImageWithFallback
+                      src={salon.image}
                       alt={salon.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                     />
@@ -163,15 +161,15 @@ export function SalonMapView() {
                       </Badge>
                     </div>
                   </div>
-                  
+
                   <div className="p-4">
                     <h3 className="dark:text-white cream:text-foreground mb-2">{salon.name}</h3>
-                    
+
                     <div className="flex items-center gap-2 text-sm dark:text-white/60 cream:text-foreground/60 mb-3">
                       <MapPin className="h-4 w-4" />
                       <span className="truncate">{salon.address}</span>
                     </div>
-                    
+
                     <div className="flex items-center gap-4 mb-3">
                       <div className="flex items-center gap-1 text-[#d4af37]">
                         <Star className="h-4 w-4 fill-current" />
@@ -197,7 +195,7 @@ export function SalonMapView() {
                           </div>
                         ))}
                       </div>
-                      
+
                       {salon.services.length > 3 && (
                         <>
                           <CollapsibleContent>
@@ -218,7 +216,7 @@ export function SalonMapView() {
                               variant="ghost"
                               size="sm"
                               className="w-full text-[#d4af37] hover:text-[#f0d976] hover:bg-[#d4af37]/10 mb-3"
-                              onClick={(e) => {
+                              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                                 e.stopPropagation();
                               }}
                             >
@@ -229,15 +227,15 @@ export function SalonMapView() {
                         </>
                       )}
                     </Collapsible>
-                    
+
                     <div className="flex items-center justify-between pt-3 border-t border-[#d4af37]/10">
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-green-500" />
                         <span className="text-green-500 text-sm">{salon.availability}</span>
                       </div>
-                      <Button 
-                        size="sm" 
-                        onClick={(e) => {
+                      <Button
+                        size="sm"
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                           e.stopPropagation();
                           navigate(`/salon/${salon.id}`);
                         }}
@@ -255,109 +253,26 @@ export function SalonMapView() {
           {/* Map View - 70% */}
           <div className="w-full lg:w-[70%]">
             <div className="sticky top-20">
-              {/* Search Controls */}
-              <div className="backdrop-blur-lg rounded-2xl border border-[#d4af37]/20 p-4 mb-4 shadow-xl dark:bg-gradient-to-br dark:from-zinc-900/90 dark:to-black/90 cream:bg-gradient-to-br cream:from-white/90 cream:to-[#f5f1e8]/90">
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#d4af37]" />
-                    <Input 
-                      placeholder="Location" 
-                      className="pl-9 h-10 border-[#d4af37]/30 focus:border-[#d4af37] text-sm dark:bg-black/50 dark:text-white dark:placeholder:text-white/40 cream:bg-white cream:text-foreground cream:placeholder:text-foreground/40"
-                    />
-                  </div>
-                  
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#d4af37]" />
-                    <Input 
-                      placeholder="Service or Salon" 
-                      className="pl-9 h-10 border-[#d4af37]/30 focus:border-[#d4af37] text-sm dark:bg-black/50 dark:text-white dark:placeholder:text-white/40 cream:bg-white cream:text-foreground cream:placeholder:text-foreground/40"
-                    />
-                  </div>
-                  
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="h-10 justify-start text-left border-[#d4af37]/30 hover:border-[#d4af37] text-sm dark:bg-black/50 dark:text-white dark:hover:bg-black/70 dark:hover:text-white cream:bg-white cream:text-foreground cream:hover:bg-[#f5f1e8]"
-                      >
-                        <Calendar className="mr-2 h-4 w-4 text-[#d4af37]" />
-                        {date ? format(date, 'PP') : <span className="dark:text-white/40 cream:text-foreground/40">Date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 border-[#d4af37]/30 dark:bg-zinc-900 cream:bg-white" align="start">
-                      <div className="flex gap-2 p-3 border-b border-[#d4af37]/20">
-                        <Button size="sm" onClick={() => handleQuickDate('today')} className="bg-gradient-to-r from-[#d4af37] to-[#f0d976] dark:text-black cream:text-white hover:from-[#b8941f] hover:to-[#d4af37]">
-                          Today
-                        </Button>
-                        <Button size="sm" onClick={() => handleQuickDate('tomorrow')} className="bg-gradient-to-r from-[#d4af37] to-[#f0d976] dark:text-black cream:text-white hover:from-[#b8941f] hover:to-[#d4af37]">
-                          Tomorrow
-                        </Button>
-                      </div>
-                      <CalendarComponent mode="single" selected={date} onSelect={setDate} initialFocus className="dark:bg-zinc-900 dark:text-white cream:bg-white cream:text-foreground" />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-3">
-                  <Popover open={showTimeDropdown} onOpenChange={setShowTimeDropdown}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="h-10 justify-start text-left border-[#d4af37]/30 hover:border-[#d4af37] text-sm dark:bg-black/50 dark:text-white dark:hover:bg-black/70 dark:hover:text-white cream:bg-white cream:text-foreground cream:hover:bg-[#f5f1e8]">
-                        <Clock className="mr-2 h-4 w-4 text-[#d4af37]" />
-                        <span>{fromTime} - {toTime}</span>
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80 border-[#d4af37]/30 dark:bg-zinc-900 cream:bg-white" align="start">
-                      <div className="space-y-3">
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={() => handleTimePreset('morning')} className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d976] dark:text-black cream:text-white hover:from-[#b8941f] hover:to-[#d4af37]">
-                            Morning
-                          </Button>
-                          <Button size="sm" onClick={() => handleTimePreset('afternoon')} className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d976] dark:text-black cream:text-white hover:from-[#b8941f] hover:to-[#d4af37]">
-                            Afternoon
-                          </Button>
-                          <Button size="sm" onClick={() => handleTimePreset('evening')} className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d976] dark:text-black cream:text-white hover:from-[#b8941f] hover:to-[#d4af37]">
-                            Evening
-                          </Button>
-                        </div>
-                        <div>
-                          <label className="dark:text-white/80 cream:text-foreground/80 text-sm mb-2 block">From</label>
-                          <Select value={fromTime} onValueChange={setFromTime}>
-                            <SelectTrigger className="border-[#d4af37]/30 dark:bg-black/50 dark:text-white cream:bg-white cream:text-foreground">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="border-[#d4af37]/30 max-h-60 dark:bg-zinc-900 dark:text-white cream:bg-white cream:text-foreground">
-                              {timeOptions.map((time) => (
-                                <SelectItem key={time} value={time} className="dark:text-white cream:text-foreground hover:bg-[#d4af37]/20">{time}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <label className="dark:text-white/80 cream:text-foreground/80 text-sm mb-2 block">To</label>
-                          <Select value={toTime} onValueChange={setToTime}>
-                            <SelectTrigger className="border-[#d4af37]/30 dark:bg-black/50 dark:text-white cream:bg-white cream:text-foreground">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="border-[#d4af37]/30 max-h-60 dark:bg-zinc-900 dark:text-white cream:bg-white cream:text-foreground">
-                              {timeOptions.map((time) => (
-                                <SelectItem key={time} value={time} className="dark:text-white cream:text-foreground hover:bg-[#d4af37]/20">{time}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="dark:text-white/70 cream:text-foreground/70">Distance</span>
-                      <span className="text-[#d4af37]">{distance[0]} km</span>
-                    </div>
-                    <Slider value={distance} onValueChange={setDistance} max={50} min={1} step={1} className="cursor-pointer" />
-                  </div>
-                </div>
-              </div>
+              {/* Search Controls (reused) */}
+              <SearchControls
+                location={location}
+                setLocation={setLocation}
+                serviceQuery={serviceQuery}
+                setServiceQuery={setServiceQuery}
+                serviceRef={serviceRef}
+                date={date}
+                setDate={setDate}
+                showTimeDropdown={showTimeDropdown}
+                setShowTimeDropdown={setShowTimeDropdown}
+                fromTime={fromTime}
+                setFromTime={setFromTime}
+                toTime={toTime}
+                setToTime={setToTime}
+                distance={distance}
+                setDistance={setDistance}
+                handleQuickDate={handleQuickDate}
+                handleTimePreset={handleTimePreset}
+              />
 
               {/* Map */}
               <div className="relative h-[calc(100vh-300px)] rounded-2xl border border-[#d4af37]/20 overflow-hidden dark:bg-gradient-to-br dark:from-zinc-900 dark:to-black cream:bg-gradient-to-br cream:from-[#f5f1e8] cream:to-white">
@@ -388,9 +303,9 @@ export function SalonMapView() {
                             <div className="dark:text-white/60 cream:text-foreground/60 text-xs mb-2">
                               {salon.services[0].name} - {salon.services[0].price}
                             </div>
-                            <Button 
-                              size="sm" 
-                              onClick={(e) => {
+                            <Button
+                              size="sm"
+                              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                                 e.stopPropagation();
                                 navigate(`/salon/${salon.id}`);
                               }}
@@ -409,20 +324,20 @@ export function SalonMapView() {
           </div>
         </div>
       </div>
-      
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(212, 175, 55, 0.1);
-          border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: linear-gradient(to bottom, #d4af37, #f0d976);
-          border-radius: 3px;
-        }
-      `}</style>
+
+      <style>{`
+         .custom-scrollbar::-webkit-scrollbar {
+           width: 6px;
+         }
+         .custom-scrollbar::-webkit-scrollbar-track {
+           background: rgba(212, 175, 55, 0.1);
+           border-radius: 3px;
+         }
+         .custom-scrollbar::-webkit-scrollbar-thumb {
+           background: linear-gradient(to bottom, #d4af37, #f0d976);
+           border-radius: 3px;
+         }
+       `}</style>
     </section>
   );
 }

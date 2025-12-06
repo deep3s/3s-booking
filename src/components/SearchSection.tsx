@@ -11,6 +11,7 @@ import { Autocomplete } from './ui/Autocomplete';
 import {Slider} from "./ui/slider";
 import { useLazyReverseGeocodeQuery } from '../services/olaMaps.api';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from './ui/select';
+import { SearchControls } from './SearchControls';
 
 const timeOptions = Array.from({ length: 48 }, (_, i) => {
 	const hour = Math.floor(i / 2);
@@ -169,182 +170,25 @@ export function SearchSection() {
 					</div>
 
 					<div className="max-w-5xl mx-auto">
-						<div className="backdrop-blur-lg rounded-2xl border border-[#d4af37]/20 p-6 shadow-2xl dark:bg-gradient-to-br dark:from-zinc-900/90 dark:to-black/90 cream:bg-gradient-to-br cream:from-white/90 cream:to-[#f5f1e8]/90">
-							<div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-								<div className="relative">
-									<MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#d4af37]" />
-									<Autocomplete
-										value={location}
-										onChange={setLocation}
-										onSelect={(item) => setLocation(item.description || '')}
-										placeholder="Location"
-										className="pl-10 border-[#d4af37]/30 focus:border-[#d4af37] dark:bg-black/50 dark:text-white dark:placeholder:text-white/40 cream:bg-white cream:text-foreground cream:placeholder:text-foreground/40"
-									/>
-								</div>
-
-								<div className="relative">
-									<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#d4af37]" />
-									<Input
-										ref={(serviceRef as any)}
-										value={serviceQuery}
-										onChange={(e) => setServiceQuery((e as any).target.value)}
-										placeholder="Service or Salon"
-										className="pl-10 border-[#d4af37]/30 focus:border-[#d4af37] dark:bg-black/50 dark:text-white dark:placeholder:text-white/40 cream:bg-white cream:text-foreground cream:placeholder:text-foreground/40"
-									/>
-								</div>
-
-								<Popover>
-									<PopoverTrigger asChild>
-										<div className="relative w-full">
-											<Button
-												variant="outline"
-												className="justify-start text-left w-full border-[#d4af37]/30 hover:border-[#d4af37] dark:bg-black/50 dark:text-white dark:hover:bg-black/70 dark:hover:text-white cream:bg-white cream:text-foreground cream:hover:bg-[#f5f1e8]"
-											>
-												<Calendar className="mr-2 h-5 w-5 text-[#d4af37]"/>
-												{date ? format(date, 'PPP') :
-													<span className="dark:text-white/40 cream:text-foreground/40">Pick a date</span>}
-											</Button>
-										</div>
-									</PopoverTrigger>
-									<PopoverContent className="w-auto p-0 border-[#d4af37]/30 dark:bg-zinc-900 cream:bg-white" align="start">
-										<div className="flex gap-2 p-3 border-b border-[#d4af37]/20 ">
-											<Button
-												size="sm"
-												onClick={() => handleQuickDate('today')}
-												className="bg-gradient-to-r from-[#d4af37] to-[#f0d976] dark:text-black cream:text-white hover:from-[#b8941f] hover:to-[#d4af37]"
-											>
-												Today
-											</Button>
-											<Button
-												size="sm"
-												onClick={() => handleQuickDate('tomorrow')}
-												className="bg-gradient-to-r from-[#d4af37] to-[#f0d976] dark:text-black cream:text-white hover:from-[#b8941f] hover:to-[#d4af37]"
-											>
-												Tomorrow
-											</Button>
-										</div>
-										<CalendarComponent
-											mode="single"
-											selected={date}
-											onSelect={setDate}
-											initialFocus
-											className="dark:bg-zinc-900 dark:text-white cream:bg-white cream:text-foreground"
-										/>
-									</PopoverContent>
-								</Popover>
-							</div>
-
-							<div className="grid md:grid-cols-2 gap-4 mb-4">
-								<Popover open={showTimeDropdown} onOpenChange={setShowTimeDropdown}>
-									<PopoverTrigger asChild>
-										<div className="relative w-full">
-											<Button
-												variant="outline"
-												className="justify-start w-full text-left border-[#d4af37]/30 hover:border-[#d4af37] dark:bg-black/50 dark:text-white dark:hover:bg-black/70 dark:hover:text-white cream:bg-white cream:text-foreground cream:hover:bg-[#f5f1e8]"
-											>
-												<Clock className="mr-2 h-5 w-5 text-[#d4af37]"/>
-												<span>{fromTime} - {toTime}</span>
-											</Button>
-										</div>
-									</PopoverTrigger>
-									<PopoverContent className="w-80 border-[#d4af37]/30 dark:bg-zinc-900 cream:bg-white" align="start">
-                    <div className="space-y-4">
-                      <div className="flex gap-2 mb-3">
-                        <Button
-                          size="sm"
-                          onClick={() => handleTimePreset('morning')}
-                          className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d976] dark:text-black cream:text-white hover:from-[#b8941f] hover:to-[#d4af37]"
-                        >
-                          Morning
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleTimePreset('afternoon')}
-                          className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d976] dark:text-black cream:text-white hover:from-[#b8941f] hover:to-[#d4af37]"
-                        >
-                          Afternoon
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleTimePreset('evening')}
-                          className="flex-1 bg-gradient-to-r from-[#d4af37] to-[#f0d976] dark:text-black cream:text-white hover:from-[#b8941f] hover:to-[#d4af37]"
-                        >
-                          Evening
-                        </Button>
-                      </div>
-
-                      <div>
-                        <label className="dark:text-white/80 cream:text-foreground/80 text-sm mb-2 block">From</label>
-                        <Select value={fromTime} onValueChange={setFromTime}>
-                          <SelectTrigger className="border-[#d4af37]/30 dark:bg-black/50 dark:text-white cream:bg-white cream:text-foreground">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="border-[#d4af37]/30 max-h-60 dark:bg-zinc-900 dark:text-white cream:bg-white cream:text-foreground">
-                            {timeOptions.map((time) => (
-                              <SelectItem key={time} value={time} className="dark:text-white cream:text-foreground hover:bg-[#d4af37]/20">
-                                {time}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <label className="dark:text-white/80 cream:text-foreground/80 text-sm mb-2 block">To</label>
-                        <Select value={toTime} onValueChange={setToTime}>
-                          <SelectTrigger className="border-[#d4af37]/30 dark:bg-black/50 dark:text-white cream:bg-white cream:text-foreground">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="border-[#d4af37]/30 max-h-60 dark:bg-zinc-900 dark:text-white cream:bg-white cream:text-foreground">
-                            {timeOptions.map((time) => (
-                              <SelectItem key={time} value={time} className="dark:text-white cream:text-foreground hover:bg-[#d4af37]/20">
-                                {time}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-
-								<div className="space-y-2">
-									<div className="flex items-center justify-between text-sm">
-										<span className="dark:text-white/80 cream:text-foreground/80">Distance</span>
-										<span className="text-[#d4af37]">{distance[0]} km</span>
-									</div>
-									<Slider
-										value={distance}
-										onValueChange={setDistance}
-										max={50}
-										min={1}
-										step={1}
-										className="cursor-pointer"
-									/>
-								</div>
-							</div>
-
-							<div className="mt-4 flex flex-wrap gap-3">
-								<span className="dark:text-white/60 cream:text-foreground/60">Popular:</span>
-								<button onClick={() => setServiceAndFocus('Haircut')} className="px-4 py-1 rounded-full bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30 text-[#d4af37] hover:from-[#d4af37]/20 hover:to-[#f0d976]/20 transition-all">
-									Haircut
-								</button>
-								<button onClick={() => setServiceAndFocus('Manicure')} className="px-4 py-1 rounded-full bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30 text-[#d4af37] hover:from-[#d4af37]/20 hover:to-[#f0d976]/20 transition-all">
-									Manicure
-								</button>
-								<button onClick={() => setServiceAndFocus('Facial')} className="px-4 py-1 rounded-full bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30 text-[#d4af37] hover:from-[#d4af37]/20 hover:to-[#f0d976]/20 transition-all">
-									Facial
-								</button>
-								<button onClick={() => setServiceAndFocus('Spa')} className="px-4 py-1 rounded-full bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30 text-[#d4af37] hover:from-[#d4af37]/20 hover:to-[#f0d976]/20 transition-all">
-									Spa
-								</button>
-							</div>
-
-							<Button className="w-full mt-6 bg-gradient-to-r from-[#d4af37] to-[#f0d976] dark:text-black cream:text-white hover:from-[#b8941f] hover:to-[#d4af37] h-12">
-								<Search className="h-5 w-5 mr-2" />
-								Search Salons
-							</Button>
-						</div>
+						<SearchControls
+							location={location}
+							setLocation={setLocation}
+							serviceQuery={serviceQuery}
+							setServiceQuery={setServiceQuery}
+							serviceRef={serviceRef}
+							date={date}
+							setDate={setDate}
+							showTimeDropdown={showTimeDropdown}
+							setShowTimeDropdown={setShowTimeDropdown}
+							fromTime={fromTime}
+							setFromTime={setFromTime}
+							toTime={toTime}
+							setToTime={setToTime}
+							distance={distance}
+							setDistance={setDistance}
+							handleQuickDate={handleQuickDate}
+							handleTimePreset={handleTimePreset}
+						/>
 					</div>
 				</div>
 			</section>

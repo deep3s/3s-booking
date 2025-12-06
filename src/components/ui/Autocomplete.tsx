@@ -34,17 +34,34 @@ export function Autocomplete({
   // keep internal value in sync if parent controls it
   React.useEffect(() => {
     setInputValue(value);
+    // Only open dropdown if input is focused (not just on value change)
+    if (triggerRef.current && document.activeElement === triggerRef.current) {
+      setOpen(true);
+    } else {
+      setOpen(false);
+    }
   }, [value]);
 
-  // debounce input and fetch
+  // Only open dropdown on input click (focus), not on typing
+  const handleInputFocus = () => {
+    if (inputValue.trim()) {
+      fetchSuggestions(inputValue);
+      setOpen(true);
+    } else {
+      setOpen(true); // open even if empty, for UX consistency
+    }
+  };
+
+  // Remove automatic opening on input change
   React.useEffect(() => {
     if (!inputValue.trim()) {
       setHighlightedIndex(-1);
       return;
     }
+    // Only fetch, do not open dropdown
     const id = setTimeout(() => {
       fetchSuggestions(inputValue);
-      setOpen(true);
+      // setOpen(true); // removed: do not open on typing
     }, debounceMs);
     return () => clearTimeout(id);
   }, [inputValue, debounceMs, fetchSuggestions]);
@@ -114,12 +131,7 @@ export function Autocomplete({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             className={cn("pl-10 border-[#d4af37]/30 focus:border-[#d4af37] dark:bg-black/50 dark:text-white dark:placeholder:text-white/40 cream:bg-white cream:text-foreground cream:placeholder:text-foreground/40", className)}
-            onFocus={() => {
-              if (inputValue.trim()) {
-                fetchSuggestions(inputValue);
-                setOpen(true);
-              }
-            }}
+            onFocus={handleInputFocus}
           />
         </div>
       </PopoverTrigger>
@@ -142,7 +154,11 @@ export function Autocomplete({
             ref={listRef}
             role="listbox"
             aria-label="Suggestions"
-            className="max-h-60 overflow-auto p-1 space-y-1"
+            className="max-h-60 overflow-y-auto p-1 space-y-1"
+            style={{
+              scrollbarColor: '#d4af37 #f5f1e8', // thumb, track
+              scrollbarWidth: 'thin',
+            }}
           >
             {suggestions.map((s: Suggestion, idx: number) => (
               <li
