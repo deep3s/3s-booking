@@ -1,25 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {Search, MapPin, Calendar, Sparkles, Smartphone, Apple, PlayCircle, Clock} from 'lucide-react';
-import { Input } from './ui/input';
+import {Sparkles, Smartphone, Apple, PlayCircle} from 'lucide-react';
 import { Button } from './ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Calendar as CalendarComponent } from './ui/calendar';
 import { SalonCard } from './SalonCard';
-import { ImageWithFallback } from './figma/ImageWithFallback';
-import { format } from 'date-fns';
-import { Autocomplete } from './ui/Autocomplete';
-import {Slider} from "./ui/slider";
+import { ImageWithFallback } from './shared/ImageWithFallback';
 import { useLazyReverseGeocodeQuery } from '../services/olaMaps.api';
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from './ui/select';
 import { SearchControls } from './SearchControls';
+import {useNavigate} from "react-router-dom";
 
-const timeOptions = Array.from({ length: 48 }, (_, i) => {
-	const hour = Math.floor(i / 2);
-	const minute = i % 2 === 0 ? '00' : '30';
-	const period = hour < 12 ? 'AM' : 'PM';
-	const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-	return `${displayHour}:${minute} ${period}`;
-});
 const mockSalons = [
 	{
 		id: 1,
@@ -72,79 +59,11 @@ const mockSalons = [
 ];
 
 export function SearchSection() {
-     const [date, setDate] = useState<Date>();
-	const [showTimeDropdown, setShowTimeDropdown] = useState(false);
-	const [fromTime, setFromTime] = useState('9:00 AM');
-	const [toTime, setToTime] = useState('6:00 PM');
-	const [distance, setDistance] = useState([5]);
-	const [location, setLocation] = useState('');
-	// Controlled state for the "Service or Salon" input
-	const [serviceQuery, setServiceQuery] = useState('');
-	const serviceRef = useRef<HTMLInputElement | null>(null);
-
-	const setServiceAndFocus = (val: string) => {
-		setServiceQuery(val);
-		// focus the input after state update
-		setTimeout(() => serviceRef.current?.focus(), 0);
-	};
-
-	// lazy reverse geocode hook - we'll trigger on mount when localStorage has userLocation
-	const [triggerReverseGeocode, reverseResult] = useLazyReverseGeocodeQuery();
-	const didRunRef = useRef(false);
-
-	useEffect(() => {
-		// run only once
-		if (didRunRef.current) return;
-		didRunRef.current = true;
-
-		try {
-			const raw = localStorage.getItem('userLocation');
-			if (!raw) return;
-			const parsed = JSON.parse(raw);
-			// expected shape: { latitude, longitude, timestamp, source }
-			const lat = parsed?.latitude ?? parsed?.lat ?? parsed?.coords?.latitude;
-			const lng = parsed?.longitude ?? parsed?.lng ?? parsed?.coords?.longitude;
-			if (lat != null && lng != null) {
-				// trigger reverse geocode with "lat,lng" string
-				triggerReverseGeocode(`${lat},${lng}`);
-			}
-		} catch (e) {
-			// ignore parse errors
-		}
-	}, [triggerReverseGeocode]);
-
-	// when reverse geocode returns, set location from the address field (if present)
-	useEffect(() => {
-		const data = (reverseResult as any)?.data;
-		if (data && data.address) {
-			setLocation(data.address);
-		}
-	}, [reverseResult]);
-
-	const handleQuickDate = (type: 'today' | 'tomorrow') => {
-		const newDate = new Date();
-		if (type === 'tomorrow') {
-			newDate.setDate(newDate.getDate() + 1);
-		}
-		setDate(newDate);
-	};
-
-	const handleTimePreset = (preset: 'morning' | 'afternoon' | 'evening') => {
-		switch (preset) {
-			case 'morning':
-				setFromTime('6:00 AM');
-				setToTime('12:00 PM');
-				break;
-			case 'afternoon':
-				setFromTime('12:00 PM');
-				setToTime('5:00 PM');
-				break;
-			case 'evening':
-				setFromTime('5:00 PM');
-				setToTime('10:00 PM');
-				break;
-		}
-		setShowTimeDropdown(false);
+	// navigate to /salons when the user searches
+	const navigate = useNavigate();
+	const handleSearch = (details: Record<string, any>) => {
+		// store details in history state so SalonsPage can access them via location.state if needed
+		navigate('/salons');
 	};
 
 	return (
@@ -171,23 +90,7 @@ export function SearchSection() {
 
 					<div className="max-w-5xl mx-auto">
 						<SearchControls
-							location={location}
-							setLocation={setLocation}
-							serviceQuery={serviceQuery}
-							setServiceQuery={setServiceQuery}
-							serviceRef={serviceRef}
-							date={date}
-							setDate={setDate}
-							showTimeDropdown={showTimeDropdown}
-							setShowTimeDropdown={setShowTimeDropdown}
-							fromTime={fromTime}
-							setFromTime={setFromTime}
-							toTime={toTime}
-							setToTime={setToTime}
-							distance={distance}
-							setDistance={setDistance}
-							handleQuickDate={handleQuickDate}
-							handleTimePreset={handleTimePreset}
+							onSearch={handleSearch}
 						/>
 					</div>
 				</div>
@@ -197,7 +100,7 @@ export function SearchSection() {
 			<section className="py-12 px-4 dark:bg-gradient-to-b dark:from-black dark:to-zinc-950 cream:bg-gradient-to-b cream:from-[#faf8f3] cream:to-[#f5f1e8]">
 				<div className="container mx-auto">
 					<h2 className="mb-6 bg-gradient-to-r from-[#d4af37] to-[#f0d976] bg-clip-text text-transparent">
-						Recently Viewed
+						Recently Booked Salons
 					</h2>
 					<div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
 						{mockSalons.map((salon) => (

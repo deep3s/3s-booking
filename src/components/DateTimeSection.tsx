@@ -2,7 +2,7 @@ import { Calendar, Clock, Sparkles, Star, Check } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Calendar as CalendarComponent } from './ui/calendar';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { ImageWithFallback } from './shared/ImageWithFallback';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -26,7 +26,7 @@ export function DateTimeSection() {
     const storedServices = localStorage.getItem('selectedServices');
     const storedSalon = localStorage.getItem('selectedSalon');
     const storedSpecialist = localStorage.getItem('selectedSpecialist');
-    
+
     if (storedServices) {
       setSelectedServices(JSON.parse(storedServices));
     }
@@ -58,9 +58,9 @@ export function DateTimeSection() {
 
   const formatDate = (date: Date | undefined) => {
     if (!date) return '';
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
       day: 'numeric',
       year: 'numeric'
     });
@@ -94,7 +94,7 @@ export function DateTimeSection() {
                   <Calendar className="h-5 w-5 text-[#d4af37]" />
                   <h3 className="dark:text-white cream:text-foreground">Select Date</h3>
                 </div>
-                
+
                 <div className="flex justify-center">
                   <CalendarComponent
                     mode="single"
@@ -126,7 +126,7 @@ export function DateTimeSection() {
                     <Clock className="h-5 w-5 text-[#d4af37]" />
                     <h3 className="dark:text-white cream:text-foreground">Select Time Slot</h3>
                   </div>
-                  
+
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
                     {timeSlots.map((time) => {
                       const isSelected = selectedTime === time;

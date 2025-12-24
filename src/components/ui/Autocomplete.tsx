@@ -23,7 +23,7 @@ export function Autocomplete({
   onSelect,
   debounceMs = 300,
 }: AutocompleteProps) {
-  const [inputValue, setInputValue] = React.useState(value);
+  const [inputValue, setInputValue] = React.useState(value??'');
   const [open, setOpen] = React.useState(false);
   const [highlightedIndex, setHighlightedIndex] = React.useState<number>(-1);
   const triggerRef = React.useRef<HTMLInputElement | null>(null);
@@ -64,7 +64,7 @@ export function Autocomplete({
       // setOpen(true); // removed: do not open on typing
     }, debounceMs);
     return () => clearTimeout(id);
-  }, [inputValue, debounceMs, fetchSuggestions]);
+  }, [inputValue, debounceMs]);
 
   // when suggestions change, reset highlighted index and keep focus on input
   React.useEffect(() => {
@@ -145,7 +145,7 @@ export function Autocomplete({
         <div className="divide-y">
           <div className="p-2">
             {isFetching && <div className="text-sm text-muted-foreground">Loading...</div>}
-            {!isFetching && !suggestions.length && inputValue.trim() && (
+            {!isFetching && !suggestions.length && (inputValue??'').trim() && (
               <div className="text-sm text-muted-foreground">No results</div>
             )}
           </div>

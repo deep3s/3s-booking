@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {MapPin, Search, Calendar, Clock} from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
@@ -18,52 +18,25 @@ const timeOptions = Array.from({ length: 48 }, (_, i) => {
 });
 
 type Props = {
-  // location + service
-  location: string;
-  setLocation: (s: string) => void;
-  serviceQuery: string;
-  setServiceQuery: (s: string) => void;
-  // allow nullable ref objects from parents
-  serviceRef?: React.RefObject<HTMLInputElement | null>;
-
-  // date/time/distance controlled by parent
-  date?: Date | undefined;
-  setDate?: (d?: Date) => void;
-  showTimeDropdown: boolean;
-  setShowTimeDropdown: (v: boolean) => void;
-  fromTime: string;
-  setFromTime: (s: string) => void;
-  toTime: string;
-  setToTime: (s: string) => void;
-  distance: number[];
-  setDistance: (d: number[]) => void;
-
-  handleQuickDate: (type: 'today' | 'tomorrow') => void;
-  handleTimePreset: (preset: 'morning' | 'afternoon' | 'evening') => void;
   // optional callback invoked when user clicks Search; receives the saved search details
   onSearch?: (details: Record<string, any>) => void;
+  triggerInitialSearch?: boolean;
 };
 
 export function SearchControls({
-  location,
-  setLocation,
-  serviceQuery,
-  setServiceQuery,
-  serviceRef,
-  date,
-  setDate,
-  showTimeDropdown,
-  setShowTimeDropdown,
-  fromTime,
-  setFromTime,
-  toTime,
-  setToTime,
-  distance,
-  setDistance,
-  handleQuickDate,
-  handleTimePreset,
+  triggerInitialSearch,
   onSearch,
 }: Props) {
+  const [date, setDate] = useState<Date>();
+  const [showTimeDropdown, setShowTimeDropdown] = useState(false);
+  const [fromTime, setFromTime] = useState('9:00 AM');
+  const [toTime, setToTime] = useState('6:00 PM');
+  const [distance, setDistance] = useState([5]);
+  const [location, setLocation] = useState<any>({});
+  const [locationText, setLocationText] = useState('');
+  const [serviceQuery, setServiceQuery] = useState('');
+  const serviceRef = useRef<HTMLInputElement | null>(null);
+
   const setServiceAndFocus = (val: string) => {
     setServiceQuery(val);
     setTimeout(() => serviceRef?.current?.focus(), 0);
@@ -74,11 +47,21 @@ export function SearchControls({
   const didRunReverseGeocodeRef = useRef(false);
 
   useEffect(() => {
+    populateSearchDetailsFromLocalStorage();
+    if(triggerInitialSearch) {
+        handleSearchClick();
+    }
+  }, []);
+
+  useEffect(() => {
     // Run reverse geocode only once per mount
     if (didRunReverseGeocodeRef.current) return;
     didRunReverseGeocodeRef.current = true;
 
     try {
+      const lastSearchDetails = localStorage.getItem('lastSearchDetails');
+      if (lastSearchDetails) return;
+
       const raw = localStorage.getItem('userLocation');
       if (!raw) return;
       const parsed = JSON.parse(raw);
@@ -96,18 +79,25 @@ export function SearchControls({
   useEffect(() => {
     const data = (reverseResult as any)?.data;
     if (data && data.address) {
-      setLocation(data.address);
+      setLocation({
+        address: data.address,
+        lat: data.lat,
+        lng: data.lng,
+      });
     }
-  }, [reverseResult, setLocation]);
+  }, [reverseResult]);
 
   // Load lastSearchDetails from localStorage and apply to fields on mount
-  useEffect(() => {
+  const populateSearchDetailsFromLocalStorage = () => {
     try {
       const raw = localStorage.getItem('lastSearchDetails');
       if (!raw) return;
       const parsed = JSON.parse(raw);
       if (!parsed) return;
-      if (parsed.location) setLocation(parsed.location);
+      if (parsed.location) {
+        setLocation(parsed.location);
+        setLocationText(parsed.location.address);
+      }
       if (parsed.serviceQuery) setServiceQuery(parsed.serviceQuery);
       if (parsed.date && setDate) {
         const d = new Date(parsed.date);
@@ -119,20 +109,48 @@ export function SearchControls({
         const num = Number(parsed.distance);
         if (!isNaN(num)) setDistance([num]);
       }
-      // Optionally trigger search in parent
-      //onSearch && onSearch(parsed);
     } catch (e) {
       // ignore malformed or missing storage
     }
-  }, [setLocation, setServiceQuery, setDate, setFromTime, setToTime, setDistance, onSearch]);
+  }
+
+  const handleQuickDate = (type: 'today' | 'tomorrow') => {
+    const newDate = new Date();
+    if (type === 'tomorrow') {
+      newDate.setDate(newDate.getDate() + 1);
+    }
+    setDate(newDate);
+  };
+
+  const handleTimePreset = (preset: 'morning' | 'afternoon' | 'evening') => {
+    switch (preset) {
+      case 'morning':
+        setFromTime('6:00 AM');
+        setToTime('12:00 PM');
+        break;
+      case 'afternoon':
+        setFromTime('12:00 PM');
+        setToTime('5:00 PM');
+        break;
+      case 'evening':
+        setFromTime('5:00 PM');
+        setToTime('10:00 PM');
+        break;
+    }
+    setShowTimeDropdown(false);
+  };
+
 
   // Handler for Search button: save lastSearchDetails to localStorage and call parent onSearch
   const handleSearchClick = () => {
-    const reverseData = (reverseResult as any)?.data || null;
     const rawUserLoc = (() => {
       try { return JSON.parse(localStorage.getItem('userLocation') || 'null'); } catch { return null; }
     })();
 
+    if(!location || !location.address) {
+      // if location is not set, do not proceed
+      return;
+    }
     const lastSearchDetails: Record<string, any> = {
       location,
       serviceQuery,
@@ -141,19 +159,27 @@ export function SearchControls({
       toTime,
       distance: distance[0],
       // prefer reverse geocode lat/lng, fallback to stored userLocation
-      lat: reverseData?.lat ?? rawUserLoc?.latitude ?? rawUserLoc?.lat ?? null,
-      lng: reverseData?.lng ?? rawUserLoc?.longitude ?? rawUserLoc?.lng ?? null,
+      lat: location?.lat ?? rawUserLoc?.latitude ?? rawUserLoc?.lat ?? null,
+      lng: location?.lng ?? rawUserLoc?.longitude ?? rawUserLoc?.lng ?? null,
       timestamp: new Date().toISOString(),
     };
 
     try {
       localStorage.setItem('lastSearchDetails', JSON.stringify(lastSearchDetails));
+      onSearch && onSearch(lastSearchDetails);
     } catch (e) {
       // ignore storage errors
     }
 
-    onSearch && onSearch(lastSearchDetails);
   };
+
+  const onLocationSelect = (item: any) => {
+    setLocation({
+      address: item.description,
+      lat: item.location.lat,
+      lng: item.location.lng,
+    });
+  }
 
   return (
     <div className="backdrop-blur-lg rounded-2xl border border-[#d4af37]/20 p-6 shadow-2xl dark:bg-gradient-to-br dark:from-zinc-900/90 dark:to-black/90 cream:bg-gradient-to-br cream:from-white/90 cream:to-[#f5f1e8]/90">
@@ -161,9 +187,9 @@ export function SearchControls({
         <div className="relative">
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#d4af37]" />
           <Autocomplete
-            value={location}
-            onChange={setLocation}
-            onSelect={(item: any) => setLocation(item.description || '')}
+            value={locationText}
+            onChange={setLocationText}
+            onSelect={onLocationSelect}
             placeholder="Location"
             className="pl-10 border-[#d4af37]/30 focus:border-[#d4af37] dark:bg-black/50 dark:text-white dark:placeholder:text-white/40 cream:bg-white cream:text-foreground cream:placeholder:text-foreground/40"
           />
@@ -326,7 +352,8 @@ export function SearchControls({
         </button>
       </div>
 
-      <Button onClick={handleSearchClick} className="w-full mt-6 bg-gradient-to-r from-[#d4af37] to-[#f0d976] dark:text-black cream:text-white hover:from-[#b8941f] hover:to-[#d4af37] h-12">
+      <Button onClick={handleSearchClick}
+              className="cursor-pointer w-full mt-6 bg-gradient-to-r from-[#d4af37] to-[#f0d976] dark:text-black cream:text-white hover:from-[#b8941f] hover:to-[#d4af37] h-12">
         <Search className="h-5 w-5 mr-2" />
         Search Salons
       </Button>

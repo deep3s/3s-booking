@@ -43,7 +43,8 @@ export const olaMapsApi = createApi({
         // Map response to our Suggestion[] shape
         const predictions = (res.data as any)?.predictions || [];
         const suggestions: Suggestion[] = predictions.map((p: any) => ({
-          description: p.description,
+          description: p.structured_formatting.main_text,
+          long_desc: p.description,
           location: p.geometry?.location || null,
           place_id: p.place_id,
         }));

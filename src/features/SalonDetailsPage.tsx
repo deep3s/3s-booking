@@ -1,18 +1,50 @@
-import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Star, MapPin, Clock, Phone, Mail, Award, Image as ImageIcon, X } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Star, MapPin, Clock, Phone, Mail, Award, Image as ImageIcon } from 'lucide-react';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import { ImageWithFallback } from '../components/shared/ImageWithFallback';
+import { useGetLocationDetailsQuery, useGetLocationSpecialistsQuery, Specialist } from '../services/searchSalons.api';
+import { useDispatch } from 'react-redux';
+import { setLocationDetails, setSpecialists } from '../app/store/searchSalonsSlice';
 
-const salonImages = [
+// Type definitions for service categories
+interface Service {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  duration: string;
+}
+
+interface ServiceCategory {
+  id: string;
+  name: string;
+  services: Service[];
+}
+
+interface ApiService {
+  serviceId: number;
+  serviceName: string;
+  description: string;
+  durationMinutes: number;
+  basePrice: number;
+}
+
+interface ApiServiceCategory {
+  categoryId: number;
+  categoryName: string;
+  services: ApiService[];
+}
+
+const defaultSalonImages = [
   "https://images.unsplash.com/photo-1681965823525-b684fb97e9fe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBzYWxvbiUyMGludGVyaW9yfGVufDF8fHx8MTc2MDc2ODE3M3ww&ixlib=rb-4.1.0&q=80&w=1080",
   "https://images.unsplash.com/photo-1750263160581-d332256293bb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBiZWF1dHklMjBzYWxvbnxlbnwxfHx8fDE3NjA4MTc4Njh8MA&ixlib=rb-4.1.0&q=80&w=1080",
   "https://images.unsplash.com/photo-1626379501846-0df4067b8bb9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoYWlyJTIwc2Fsb24lMjBjaGFpcnxlbnwxfHx8fDE3NjA4MTc4Njh8MA&ixlib=rb-4.1.0&q=80&w=1080",
-  "https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzcGElMjBzYWxvbnxlbnwxfHx8fDE3NjA3MDEwOTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+  "https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNwYSUyMHNhbG9ufGVufHx8fDE3NjA3MDEwOTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
   "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxiZWF1dHklMjBzYWxvbnxlbnwxfHx8fDE3NjAwNTgxNDF8MA&ixlib=rb-4.1.0&q=80&w=1080",
   "https://images.unsplash.com/photo-1624981015149-e01395f1d774?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoYWlyZHJlc3NlcnxlbnwxfHx8fDE3NjAxNjU0MDZ8MA&ixlib=rb-4.1.0&q=80&w=1080"
 ];
@@ -104,9 +136,122 @@ const specialists = [
 
 export function SalonDetailsPage() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const dispatch = useDispatch();
+
+  // Parse salon ID from route parameter, default to 6 if not provided
+  const salonId = id ? parseInt(id, 10) : 6;
+
+  // Fetch location details from API using the salon ID from route
+  const { data: locationDetailsResponse } = useGetLocationDetailsQuery(salonId);
+  const { data: specialistsResponse } = useGetLocationSpecialistsQuery(salonId);
+
   const [showAllImages, setShowAllImages] = useState(false);
   const [activeCategory, setActiveCategory] = useState('hair');
-  const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
+  const [locationImages, setLocationImages] = useState<string[]>(defaultSalonImages);
+  const [displayedServiceCategories, setDisplayedServiceCategories] = useState(serviceCategories);
+  const [displayedSpecialists, setDisplayedSpecialists] = useState(specialists);
+  const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({})
+
+  // Transform API serviceCategories to match component structure
+  const transformApiServiceCategories = (apiCategories: ApiServiceCategory[]): ServiceCategory[] => {
+    return apiCategories.map((category) => ({
+      id: category.categoryName.toLowerCase().replace(/\s+/g, '-'),
+      name: category.categoryName,
+      services: category.services.map((service: ApiService) => ({
+        id: service.serviceId,
+        name: service.serviceName,
+        description: service.description,
+        price: service.basePrice,
+        duration: `${service.durationMinutes} min`,
+      })),
+    }));
+  };
+
+  // Transform API specialists to match component structure
+  const transformApiSpecialists = (apiSpecialists: Specialist[]): typeof specialists => {
+    const salonSpaSpecialties = [
+      'Hair Expert',
+      'Color Specialist',
+      'Balayage',
+      'Styling',
+      'Extensions',
+      'Bridal',
+      'Haircut',
+      'Manicure',
+      'Pedicure',
+      'Nail Art',
+      'Facial',
+      'Skincare',
+      'Spa',
+      'Massage',
+      'Makeup',
+      'Waxing',
+      'Threading',
+      'Treatments'
+    ];
+
+    const getRandomNumber = (min: number, max: number) => {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    };
+
+    const getRandomSpecialties = () => {
+      const shuffled = [...salonSpaSpecialties].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, getRandomNumber(2, 4));
+    };
+
+    return apiSpecialists.map((specialist) => ({
+      id: specialist.specialistId || 0,
+      name: (specialist.firstName || '') + (specialist.lastName ? ` ${specialist.lastName}` : ''),
+      title: specialist.notes || '',
+      rating: parseFloat((getRandomNumber(1, 5) + Math.random()).toFixed(1)),
+      reviews: getRandomNumber(200, 1000),
+      experience: `${getRandomNumber(5, 15)} years`,
+      image: specialist.profileImageUrl || '',
+      specialties: getRandomSpecialties(),
+    }));
+  };
+
+  // Update images and services when API data is received
+  useEffect(() => {
+    if (locationDetailsResponse?.data) {
+      const apiImages = locationDetailsResponse.data.images || locationDetailsResponse.data.imageNames || [];
+      if (apiImages.length > 0) {
+        setLocationImages(apiImages);
+      }
+
+      // Merge API serviceCategories with defaults
+      if (locationDetailsResponse.data.serviceCategories && locationDetailsResponse.data.serviceCategories.length > 0) {
+        const apiServiceCategories = transformApiServiceCategories(locationDetailsResponse.data.serviceCategories);
+        // Prepend API categories to defaults
+        const mergedCategories = [...apiServiceCategories, ...serviceCategories];
+        setDisplayedServiceCategories(mergedCategories);
+        // Set first API category as active
+        if (mergedCategories.length > 0) {
+          setActiveCategory(mergedCategories[0].id);
+        }
+      }
+
+      dispatch(setLocationDetails({
+        locationId: locationDetailsResponse.data.locationId,
+        locationName: locationDetailsResponse.data.locationName,
+        images: apiImages,
+        address: locationDetailsResponse.data.address,
+      }));
+    }
+  }, [locationDetailsResponse, dispatch]);
+
+  // Update specialists when API data is received
+  useEffect(() => {
+    if (specialistsResponse?.data && specialistsResponse.data.length > 0) {
+      const apiSpecialists = transformApiSpecialists(specialistsResponse.data);
+      // Prepend API specialists to defaults
+      const mergedSpecialists = [...apiSpecialists, ...specialists];
+      setDisplayedSpecialists(mergedSpecialists);
+
+      dispatch(setSpecialists(specialistsResponse.data));
+    }
+  }, [specialistsResponse, dispatch]);
 
   const scrollToSection = (categoryId: string) => {
     setActiveCategory(categoryId);
@@ -118,7 +263,7 @@ export function SalonDetailsPage() {
       {/* Header Section */}
       <div className="relative h-96 overflow-hidden">
         <ImageWithFallback
-          src={salonImages[0]}
+          src={locationImages[0]}
           alt="Golden Crown Salon"
           className="w-full h-full object-cover"
         />
@@ -128,7 +273,7 @@ export function SalonDetailsPage() {
             <Badge className="bg-gradient-to-r from-[#d4af37] to-[#f0d976] border-0 dark:text-black cream:text-white mb-3">
               Premium Salon
             </Badge>
-            <h1 className="text-white mb-3">Golden Crown Salon</h1>
+            <h1 className="text-white mb-3">{locationDetailsResponse?.data.locationName}</h1>
             <div className="flex flex-wrap items-center gap-4 mb-4">
               <div className="flex items-center gap-1">
                 <Star className="h-5 w-5 text-[#d4af37] fill-current" />
@@ -137,7 +282,7 @@ export function SalonDetailsPage() {
               </div>
               <div className="flex items-center gap-2 text-white/80">
                 <MapPin className="h-4 w-4" />
-                <span>123 Luxury Ave, Downtown</span>
+                <span>{locationDetailsResponse?.data.address}</span>
               </div>
               <div className="flex items-center gap-2 text-white/80">
                 <Clock className="h-4 w-4" />
@@ -167,7 +312,7 @@ export function SalonDetailsPage() {
               </Button>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {salonImages.slice(0, 4).map((image, index) => (
+              {locationImages.slice(0, 4).map((image, index) => (
                 <div key={index} className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer" onClick={() => setShowAllImages(true)}>
                   <ImageWithFallback
                     src={image}
@@ -192,7 +337,7 @@ export function SalonDetailsPage() {
             <div className="sticky top-20 z-30 -mx-6 px-6 py-4 mb-6 backdrop-blur-sm dark:bg-zinc-900/95 cream:bg-white/95 border-b border-[#d4af37]/20">
               <Tabs value={activeCategory} onValueChange={scrollToSection}>
                 <TabsList className="w-full justify-start overflow-x-auto dark:bg-black/50 cream:bg-[#f5f1e8] flex-wrap h-auto gap-2 p-2">
-                  {serviceCategories.map((category) => (
+                  {displayedServiceCategories.map((category) => (
                     <TabsTrigger
                       key={category.id}
                       value={category.id}
@@ -207,10 +352,12 @@ export function SalonDetailsPage() {
 
             {/* Service Categories */}
             <div className="space-y-12">
-              {serviceCategories.map((category) => (
+              {displayedServiceCategories.map((category) => (
                 <div
                   key={category.id}
-                  ref={(el) => (sectionRefs.current[category.id] = el)}
+                  ref={(el) => {
+                    if (el) sectionRefs.current[category.id] = el;
+                  }}
                   className="scroll-mt-40"
                 >
                   <h3 className="mb-6 dark:text-white cream:text-foreground">
@@ -265,7 +412,7 @@ export function SalonDetailsPage() {
               Our Specialists
             </h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {specialists.map((specialist) => (
+              {displayedSpecialists.map((specialist) => (
                 <div key={specialist.id} className="text-center">
                   <div className="relative inline-block mb-4">
                     <div className="absolute inset-0 bg-gradient-to-br from-[#d4af37] to-[#f0d976] rounded-full blur-md opacity-50" />
@@ -324,7 +471,7 @@ export function SalonDetailsPage() {
                 </div>
                 <div>
                   <p className="text-sm dark:text-white/60 cream:text-foreground/60">Phone</p>
-                  <p className="dark:text-white cream:text-foreground">+1 (555) 123-4567</p>
+                  <p className="dark:text-white cream:text-foreground">{locationDetailsResponse?.data.contactPhone}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -333,7 +480,7 @@ export function SalonDetailsPage() {
                 </div>
                 <div>
                   <p className="text-sm dark:text-white/60 cream:text-foreground/60">Email</p>
-                  <p className="dark:text-white cream:text-foreground">info@goldencrown.com</p>
+                  <p className="dark:text-white cream:text-foreground">{locationDetailsResponse?.data.locationEmail}</p>
                 </div>
               </div>
             </div>
@@ -348,7 +495,7 @@ export function SalonDetailsPage() {
             <DialogTitle className="dark:text-white cream:text-foreground">Salon Gallery</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[70vh] overflow-y-auto p-4">
-            {salonImages.map((image, index) => (
+            {locationImages.map((image, index) => (
               <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
                 <ImageWithFallback
                   src={image}

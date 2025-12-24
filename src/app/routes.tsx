@@ -13,7 +13,7 @@ export function AppRoutes() {
     return (
         <Routes>
             <Route path="/auth" element={<AuthPage/>}/>
-            <Route element={<ProtectedRoute/>}>
+            <Route>
                 <Route path="/" element={<HomePage/>}/>
                 <Route path="/salons" element={<SalonsPage/>}/>
                 <Route path="/salon/:id" element={<SalonDetailsPage/>}/>

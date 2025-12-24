@@ -3,7 +3,7 @@ import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { ImageWithFallback } from './shared/ImageWithFallback';
 
 // Service categories with their services
 const serviceCategories = [
@@ -202,7 +202,7 @@ export function ServicesSection() {
   useEffect(() => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY + 200;
-      
+
       for (const category of serviceCategories) {
         const element = categoryRefs.current[category.id];
         if (element) {
@@ -220,8 +220,8 @@ export function ServicesSection() {
   }, []);
 
   const toggleService = (id: number) => {
-    setSelectedServices(prev => 
-      prev.includes(id) 
+    setSelectedServices(prev =>
+      prev.includes(id)
         ? prev.filter(serviceId => serviceId !== id)
         : [...prev, id]
     );
@@ -232,7 +232,7 @@ export function ServicesSection() {
   };
 
   const allServices = serviceCategories.flatMap(cat => cat.services);
-  const selectedServiceDetails = selectedServices.map(id => 
+  const selectedServiceDetails = selectedServices.map(id =>
     allServices.find(s => s.id === id)
   ).filter(Boolean);
 
@@ -317,7 +317,7 @@ export function ServicesSection() {
                     {category.services.map((service) => {
                       const Icon = service.icon;
                       const isSelected = selectedServices.includes(service.id);
-                      
+
                       return (
                         <Card
                           key={service.id}
@@ -337,14 +337,14 @@ export function ServicesSection() {
                                 <Icon className={`h-5 w-5 ${isSelected ? 'dark:text-black cream:text-white' : 'text-[#d4af37]'}`} />
                               </div>
                             </div>
-                            
+
                             <h4 className={`mb-1 text-sm ${isSelected ? 'text-[#d4af37]' : 'dark:text-white cream:text-foreground'}`}>
                               {service.name}
                             </h4>
                             <p className="dark:text-white/60 cream:text-foreground/60 mb-3 text-xs">
                               {service.description}
                             </p>
-                            
+
                             <div className="flex items-center justify-between mb-3">
                               <div className="dark:text-white/60 cream:text-foreground/60 text-xs">
                                 {service.duration}

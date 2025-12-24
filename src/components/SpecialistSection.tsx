@@ -2,7 +2,7 @@ import { Star, Award, Check, Calendar, Clock, Sparkles } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { ImageWithFallback } from './shared/ImageWithFallback';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -67,7 +67,7 @@ export function SpecialistSection() {
   useEffect(() => {
     const storedServices = localStorage.getItem('selectedServices');
     const storedSalon = localStorage.getItem('selectedSalon');
-    
+
     if (storedServices) {
       setSelectedServices(JSON.parse(storedServices));
     }
@@ -116,7 +116,7 @@ export function SpecialistSection() {
           <div className="lg:col-span-2 space-y-6">
             {specialists.map((specialist) => {
               const isSelected = selectedSpecialist === specialist.id;
-              
+
               return (
                 <Card
                   key={specialist.id}
@@ -151,7 +151,7 @@ export function SpecialistSection() {
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="flex-1 p-4">
                         <div className="mb-3">
                           <h3 className={`mb-1 ${isSelected ? 'text-[#d4af37]' : 'dark:text-white cream:text-foreground'}`}>
@@ -159,7 +159,7 @@ export function SpecialistSection() {
                           </h3>
                           <p className="dark:text-white/60 cream:text-foreground/60">{specialist.title}</p>
                         </div>
-                        
+
                         <div className="flex items-center gap-4 mb-3">
                           <div className="flex items-center gap-1">
                             <Star className="h-4 w-4 text-[#d4af37] fill-current" />
@@ -170,18 +170,18 @@ export function SpecialistSection() {
                             {specialist.experience} exp.
                           </div>
                         </div>
-                        
+
                         <div className="flex flex-wrap gap-2 mb-3">
                           {specialist.specialties.map((specialty) => (
-                            <span 
-                              key={specialty} 
+                            <span
+                              key={specialty}
                               className="px-2 py-1 rounded-full bg-gradient-to-r from-[#d4af37]/10 to-[#f0d976]/10 border border-[#d4af37]/30 text-[#d4af37] text-xs"
                             >
                               {specialty}
                             </span>
                           ))}
                         </div>
-                        
+
                         <div className="flex items-center gap-2 text-sm">
                           <Clock className="h-4 w-4 text-green-500" />
                           <span className="text-green-500">Next: {specialist.nextAvailable}</span>
